@@ -1,9 +1,10 @@
 import Web3 from 'web3';
-const { infuraApi } = require('../../secret');
+import { infuraApi } from './secret-es6.js';
 
 let web3;
 
 if (typeof window !== 'undefined' && typeof window.web3 !== 'undefined') {
+  console.log("Window has web3!", window.web3.currentProvider);
   // We are in the browser and metamask is running.
   web3 = new Web3(window.web3.currentProvider);
 } else {
@@ -11,6 +12,7 @@ if (typeof window !== 'undefined' && typeof window.web3 !== 'undefined') {
   const provider = new Web3.providers.HttpProvider(
     infuraApi
   );
+  console.log("No web3. Creating our own");
   web3 = new Web3(provider);
 }
 
