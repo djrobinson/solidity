@@ -1,0 +1,4 @@
+node_modules/
+secret*
+npm-debug.log
+.next
