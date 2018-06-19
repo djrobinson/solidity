@@ -1,6 +1,7 @@
 pragma solidity ^0.4.0;
 
 contract Loan {
+    address public borrower;
     uint public dateRequested;
     uint public dateActivated;
     uint public requestedRate;
@@ -14,9 +15,10 @@ contract Loan {
     uint public payment;
     uint public collectedPayments;
     uint public amountToInterest;
-    uint public amountToBalance;
+    uint public amountToPrincipal;
     uint public currentPeriodIterator;
     uint public amountTilActivation;
+    bool public completeFlag;
 
 
     constructor(uint _requestedRate, uint _requestedAmount, uint _lengthInPeriods) public payable {
@@ -25,6 +27,7 @@ contract Loan {
         requestedAmount = _requestedAmount;
         lengthInPeriods = _lengthInPeriods;
         amountTilActivation = requestedAmount;
+        borrower = msg.sender;
         calculatePayment();
     }
 
@@ -35,18 +38,19 @@ contract Loan {
             uint amountToRefund = msg.value - amountTilActivation;
             contributedAmount = contributedAmount + msg.value - amountToRefund;
             amountTilActivation = 0;
-            activate();
             msg.sender.transfer(amountToRefund);
+            activate();
         } else {
             contributions[msg.sender] = msg.value;
             contributedAmount += msg.value;
-            amountTilActivation = amountTilActivation - contributedAmount;
+            amountTilActivation = amountTilActivation - msg.value;
         }
     }
 
     function activate() private {
         dateActivated = now;
         principalBalance = requestedAmount;
+        address(borrower).transfer(address(this).balance);
     }
 
     function complianceCheck() public {
@@ -55,22 +59,29 @@ contract Loan {
 
     function makePayment() public payable {
         amountToInterest = principalBalance / requestedRate;
-        if (msg.value < principalBalance + amountToInterest) {
-            amountToBalance = msg.value - amountToInterest;
+        uint requiredPayment = principalBalance + amountToInterest;
+        if (msg.value < requiredPayment) {
+            amountToPrincipal = msg.value - amountToInterest;
             collectedPayments += msg.value;
-            principalBalance -= msg.value;
-            principalBalance -= collectedPayments;
+            principalBalance = principalBalance - msg.value - amountToInterest;
         } else {
-            principalBalance = 0;
+            completeFlag = true;
             collectedPayments += msg.value;
-            uint amountToRefund = msg.value - principalBalance - amountToInterest;
-            collectedPayments += (msg.value - amountToRefund);
+            uint amountToPayment = msg.value - principalBalance;
+            uint amountToRefund = amountToPayment - amountToInterest;
+            collectedPayments += amountToPayment;
+            principalBalance = 0;
             msg.sender.transfer(amountToRefund);
+            distributeCollections();
         }
     }
 
     function distributeCollections() public {
-
+        uint totalContributions = address(this).balance;
+        for (uint i = 0; i < contributorCount; i++) {
+            uint distributionAmount = totalContributions / contributorCount;
+            address(contributors[i]).transfer(distributionAmount);
+        }
     }
 
     function calculatePayment() private returns (uint) {
