@@ -37,6 +37,7 @@ contract Loan {
         if (msg.value > amountTilActivation) {
             uint amountToRefund = msg.value - amountTilActivation;
             contributedAmount = contributedAmount + msg.value - amountToRefund;
+            contributions[msg.sender] = msg.value - amountToRefund;
             amountTilActivation = 0;
             msg.sender.transfer(amountToRefund);
             activate();
@@ -53,10 +54,6 @@ contract Loan {
         address(borrower).transfer(address(this).balance);
     }
 
-    function complianceCheck() public {
-
-    }
-
     function makePayment() public payable {
         amountToInterest = principalBalance / requestedRate;
         uint requiredPayment = principalBalance + amountToInterest;
@@ -66,9 +63,8 @@ contract Loan {
             principalBalance = principalBalance - msg.value - amountToInterest;
         } else {
             completeFlag = true;
-            collectedPayments += msg.value;
-            uint amountToPayment = msg.value - principalBalance;
-            uint amountToRefund = amountToPayment - amountToInterest;
+            uint amountToRefund = msg.value - requiredPayment;
+            uint amountToPayment = msg.value - amountToRefund;
             collectedPayments += amountToPayment;
             principalBalance = 0;
             msg.sender.transfer(amountToRefund);
@@ -79,7 +75,8 @@ contract Loan {
     function distributeCollections() public {
         uint totalContributions = address(this).balance;
         for (uint i = 0; i < contributorCount; i++) {
-            uint distributionAmount = totalContributions / contributorCount;
+            uint contributed = contributions[contributors[i]];
+            uint distributionAmount = totalContributions * contributed / contributedAmount;
             address(contributors[i]).transfer(distributionAmount);
         }
     }
