@@ -5,52 +5,86 @@ contract Loan {
     uint public dateActivated;
     uint public requestedRate;
     uint public requestedAmount;
+    uint public principalBalance;
     address[] public contributors;
     mapping(address => uint) public contributions;
     uint public contributedAmount;
     uint public contributorCount;
     uint public lengthInPeriods;
     uint public payment;
-    uint public exponentAmount;
-    uint public monthlyDivide;
-    uint public oneBps;
-    uint public numerator;
-    uint public denominator;
+    uint public collectedPayments;
+    uint public amountToInterest;
+    uint public amountToBalance;
+    uint public currentPeriodIterator;
+    uint public amountTilActivation;
 
 
-    constructor(uint _requestedRate, uint _requestedAmount, uint _lengthInPeriods) public {
+    constructor(uint _requestedRate, uint _requestedAmount, uint _lengthInPeriods) public payable {
         dateRequested = now;
-        // Hard coding interest for now
-        // requestedRate = _requestedRate;
-        requestedRate = 20;
+        requestedRate = _requestedRate;
         requestedAmount = _requestedAmount;
         lengthInPeriods = _lengthInPeriods;
-        numerator = fracExp(requestedAmount, requestedRate, lengthInPeriods, 20) / requestedRate * 100000000;
-        denominator = fracExp(100000000, requestedRate, lengthInPeriods, 20) - 100000000;
-        payment = numerator / denominator;
+        amountTilActivation = requestedAmount;
+        calculatePayment();
     }
 
     function contribute() public payable {
         contributors.push(msg.sender);
-        contributions[msg.sender] = msg.value;
-        contributedAmount += msg.value;
         contributorCount++;
-        // if (contributedAmount >= requestedAmount) {
-        //     uint excessAmount = contributedAmount - requestedAmount;
-        //     // TODO: Need to refund excess back
-        //     activate();
-        // }
+        if (msg.value > amountTilActivation) {
+            uint amountToRefund = msg.value - amountTilActivation;
+            contributedAmount = contributedAmount + msg.value - amountToRefund;
+            amountTilActivation = 0;
+            activate();
+            msg.sender.transfer(amountToRefund);
+        } else {
+            contributions[msg.sender] = msg.value;
+            contributedAmount += msg.value;
+            amountTilActivation = amountTilActivation - contributedAmount;
+        }
     }
 
     function activate() private {
         dateActivated = now;
+        principalBalance = requestedAmount;
+    }
+
+    function complianceCheck() public {
+
+    }
+
+    function makePayment() public payable {
+        amountToInterest = principalBalance / requestedRate;
+        if (msg.value < principalBalance + amountToInterest) {
+            amountToBalance = msg.value - amountToInterest;
+            collectedPayments += msg.value;
+            principalBalance -= msg.value;
+            principalBalance -= collectedPayments;
+        } else {
+            principalBalance = 0;
+            collectedPayments += msg.value;
+            uint amountToRefund = msg.value - principalBalance - amountToInterest;
+            collectedPayments += (msg.value - amountToRefund);
+            msg.sender.transfer(amountToRefund);
+        }
+    }
+
+    function distributeCollections() public {
+
+    }
+
+    function calculatePayment() private returns (uint) {
+        uint numerator = fracExp(requestedAmount, requestedRate, lengthInPeriods, 20) / requestedRate * 100000000;
+        uint denominator = fracExp(100000000, requestedRate, lengthInPeriods, 20) - 100000000;
+        payment = numerator / denominator;
+        return payment;
     }
 
     // Computes `k * (1+1/q) ^ N`, with precision `p`. The higher
     // the precision, the higher the gas cost. It should be
     // something around the log of `n`.
     // Much smaller values are sufficient to get a great approximation.
-    function fracExp(uint k, uint q, uint n, uint p) returns (uint) {
+    function fracExp(uint k, uint q, uint n, uint p) private returns (uint) {
       uint s = 0;
       uint N = 1;
       uint B = 1;
