@@ -16,17 +16,20 @@ contract Loan {
     uint public collectedPayments;
     uint public amountToInterest;
     uint public amountToPrincipal;
-    uint public currentPeriodIterator;
+    uint public paymentPeriodIterator;
+    uint public currentPeriodIteration;
     uint public amountTilActivation;
+    uint public testPeriodLength;
     bool public completeFlag;
 
 
-    constructor(uint _requestedRate, uint _requestedAmount, uint _lengthInPeriods) public payable {
+    constructor(uint _requestedRate, uint _requestedAmount, uint _lengthInPeriods, uint _testPeriodLength) public payable {
         dateRequested = now;
         requestedRate = _requestedRate;
         requestedAmount = _requestedAmount;
         lengthInPeriods = _lengthInPeriods;
         amountTilActivation = requestedAmount;
+        testPeriodLength = _testPeriodLength;
         borrower = msg.sender;
         calculatePayment();
     }
@@ -34,7 +37,7 @@ contract Loan {
     function contribute() public payable {
         contributors.push(msg.sender);
         contributorCount++;
-        if (msg.value > amountTilActivation) {
+        if (msg.value >= amountTilActivation) {
             uint amountToRefund = msg.value - amountTilActivation;
             contributedAmount = contributedAmount + msg.value - amountToRefund;
             contributions[msg.sender] = msg.value - amountToRefund;
@@ -55,15 +58,20 @@ contract Loan {
     }
 
     function makePayment() public payable {
-        amountToInterest = principalBalance / requestedRate;
-        uint requiredPayment = principalBalance + amountToInterest;
-        if (msg.value < requiredPayment) {
+        currentPeriodIteration = (now - dateActivated) / testPeriodLength + 1;
+        // TODO: Need to make this calculate present period interest
+        amountToInterest = requestedAmount / requestedRate;
+        uint payoffValue = principalBalance + amountToInterest;
+        if (msg.value <= payoffValue) {
+            if (msg.value > amountToInterest && paymentPeriodIterator < currentPeriodIteration ) {
+                paymentPeriodIterator++;
+            }
             amountToPrincipal = msg.value - amountToInterest;
             collectedPayments += msg.value;
             principalBalance = principalBalance - msg.value - amountToInterest;
         } else {
             completeFlag = true;
-            uint amountToRefund = msg.value - requiredPayment;
+            uint amountToRefund = msg.value - payoffValue;
             uint amountToPayment = msg.value - amountToRefund;
             collectedPayments += amountToPayment;
             principalBalance = 0;
