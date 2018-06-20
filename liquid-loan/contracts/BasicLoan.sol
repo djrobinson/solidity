@@ -59,8 +59,10 @@ contract Loan {
 
     function makePayment() public payable {
         currentPeriodIteration = (now - dateActivated) / testPeriodLength + 1;
-        // TODO: Need to make this calculate present period interest
-        amountToInterest = requestedAmount / requestedRate;
+
+        if (paymentPeriodIterator < currentPeriodIteration) {
+            amountToInterest = calculateInterestPayment();
+        }
         uint payoffValue = principalBalance + amountToInterest;
         if (msg.value <= payoffValue) {
             if (msg.value > amountToInterest && paymentPeriodIterator < currentPeriodIteration ) {
@@ -89,24 +91,30 @@ contract Loan {
         }
     }
 
+
+    // TODO: PMT()
     function calculatePayment() private returns (uint) {
-        uint numerator = fracExp(requestedAmount, requestedRate, lengthInPeriods, 20) / requestedRate * 100000000;
-        uint denominator = fracExp(100000000, requestedRate, lengthInPeriods, 20) - 100000000;
+        uint numerator = futureValue(requestedRate, lengthInPeriods, requestedAmount, 20) / requestedRate * 100000000;
+        uint denominator = futureValue(requestedRate, lengthInPeriods, 100000000, 20) - 100000000;
         payment = numerator / denominator;
         return payment;
     }
 
-    // Computes `k * (1+1/q) ^ N`, with precision `p`. The higher
-    // the precision, the higher the gas cost. It should be
-    // something around the log of `n`.
-    // Much smaller values are sufficient to get a great approximation.
-    function fracExp(uint k, uint q, uint n, uint p) private returns (uint) {
+    // TODO: IPMT()
+    // Not right yet
+    function calculateInterestPayment() private returns (uint) {
+        uint interestPayment = futureValue(requestedRate, paymentPeriodIterator, payment, 20) / requestedRate;
+        return interestPayment;
+    }
+
+    // TODO: FV()
+    function futureValue( uint rateReciprocal, uint n, uint presentValue, uint precision) private returns (uint) {
       uint s = 0;
       uint N = 1;
       uint B = 1;
       // Might need to adjust how we set % to fraction later by changing q
-      for (uint i = 0; i < p; ++i){
-        s += k * N / B / (q**i);
+      for (uint i = 0; i < precision; ++i){
+        s += presentValue * N / B / (rateReciprocal**i);
         N  = N * (n-i);
         B  = B * (i+1);
       }
