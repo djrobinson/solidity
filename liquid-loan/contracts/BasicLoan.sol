@@ -60,9 +60,10 @@ contract Loan {
     function makePayment() public payable {
         currentPeriodIteration = (now - dateActivated) / testPeriodLength + 1;
 
-        if (paymentPeriodIterator < currentPeriodIteration) {
+        if (paymentPeriodIterator <= currentPeriodIteration) {
             amountToInterest = calculateInterestPayment();
         }
+        // Need to clean up vars in here to make less confusing
         uint payoffValue = principalBalance + amountToInterest;
         if (msg.value <= payoffValue) {
             if (msg.value > amountToInterest && paymentPeriodIterator < currentPeriodIteration ) {
@@ -70,7 +71,7 @@ contract Loan {
             }
             amountToPrincipal = msg.value - amountToInterest;
             collectedPayments += msg.value;
-            principalBalance = principalBalance - msg.value - amountToInterest;
+            principalBalance = principalBalance - msg.value + amountToInterest;
         } else {
             completeFlag = true;
             uint amountToRefund = msg.value - payoffValue;
@@ -103,7 +104,7 @@ contract Loan {
     // TODO: IPMT()
     // Not right yet
     function calculateInterestPayment() private returns (uint) {
-        uint interestPayment = futureValue(requestedRate, paymentPeriodIterator, payment, 20) / requestedRate;
+        uint interestPayment = principalBalance / requestedRate;
         return interestPayment;
     }
 
