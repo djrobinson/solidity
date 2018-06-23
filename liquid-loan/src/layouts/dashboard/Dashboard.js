@@ -1,9 +1,14 @@
-import React, { Component } from 'react'
+import React, { Component } from 'react';
+import web3 from '../../util/connectors.js';
 
 class Dashboard extends Component {
   constructor(props, { authData }) {
     super(props)
     authData = this.props
+  }
+
+  componentDidMount() {
+    console.log("Web 3 version: ", web3.version);
   }
 
   render() {

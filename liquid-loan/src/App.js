@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router'
 import { HiddenOnlyAuth, VisibleOnlyAuth } from './util/wrappers.js'
+import { web3 } from './util/connectors.js'
 
 // UI Components
 import LoginButtonContainer from './user/ui/loginbutton/LoginButtonContainer'
@@ -13,6 +14,11 @@ import './css/pure-min.css'
 import './App.css'
 
 class App extends Component {
+
+  componentDidMount() {
+    console.log("Web 3 version: ", web3.version);
+  }
+
   render() {
     const OnlyAuthLinks = VisibleOnlyAuth(() =>
       <span>
