@@ -15,10 +15,6 @@ import './App.css'
 
 class App extends Component {
 
-  componentDidMount() {
-    console.log("Web 3 version: ", web3.version);
-  }
-
   render() {
     const OnlyAuthLinks = VisibleOnlyAuth(() =>
       <span>
