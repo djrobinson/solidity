@@ -3,7 +3,7 @@ import LoanFactory from './build/LoanFactory.json';
 
 const instance = new web3.eth.Contract(
   JSON.parse(LoanFactory.interface),
-  '0x9643AfBDBAD3d9b75a642cEd90bC3573E6328e6E'
+  '0xa1D7CC24A6e3be3F1Fe2f65c1537136f31c6681c'
 );
 
 export default instance;

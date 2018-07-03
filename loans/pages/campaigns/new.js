@@ -20,7 +20,7 @@ class CampaignNew extends Component {
     try {
       const accounts = await web3.eth.getAccounts();
       await factory.methods
-        .createCampaign(this.state.minimumContribution)
+        .createLoan(this.state.requestedRate, this.state.requestedAmount, this.state.lengthInPeriods, this.state.testPeriodLength)
         .send({
           from: accounts[0]
         });
@@ -40,13 +40,43 @@ class CampaignNew extends Component {
 
         <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
           <Form.Field>
-            <label>Minimum Contribution</label>
+            <label>Desired Rate</label>
+            <Input
+              label="Currently 1/r until conversion is finished."
+              labelPosition="right"
+              value={this.state.requestedRate}
+              onChange={event =>
+                this.setState({ requestedRate: event.target.value })}
+            />
+          </Form.Field>
+          <Form.Field>
+            <label>Amount Requested</label>
             <Input
               label="wei"
               labelPosition="right"
-              value={this.state.minimumContribution}
+              value={this.state.requestedAmount}
               onChange={event =>
-                this.setState({ minimumContribution: event.target.value })}
+                this.setState({ requestedAmount: event.target.value })}
+            />
+          </Form.Field>
+          <Form.Field>
+            <label>Length of loan (# of payments/periods)</label>
+            <Input
+              label="wei"
+              labelPosition="right"
+              value={this.state.lengthInPeriods}
+              onChange={event =>
+                this.setState({ lengthInPeriods: event.target.value })}
+            />
+          </Form.Field>
+          <Form.Field>
+            <label>Length of period ( Time in seconds )</label>
+            <Input
+              label="wei"
+              labelPosition="right"
+              value={this.state.testPeriodLength}
+              onChange={event =>
+                this.setState({ testPeriodLength: event.target.value })}
             />
           </Form.Field>
 
